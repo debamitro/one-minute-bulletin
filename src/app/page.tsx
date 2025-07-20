@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -32,6 +33,14 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-8">
+          <div className="flex justify-end mb-4">
+            <Link
+              href="/about"
+              className="text-gray-300 hover:text-white transition-colors duration-200 text-sm font-medium"
+            >
+              About ℹ️
+            </Link>
+          </div>
           <h1 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-2">
             ✨ One Minute Bulletin ✨
           </h1>
