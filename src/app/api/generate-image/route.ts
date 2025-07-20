@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     const imagePrompt = ideaResponse.choices[0]?.message?.content || 
       `Create a professional news bulletin thumbnail image for: "${text}". Style: hyper-modern, meme-ified, sarcastic, like fireship`;
 
-    console.log(imagePrompt);
     // Generate image using OpenAI's DALL-E
     const response = await openai.images.generate({
       model: "dall-e-3",

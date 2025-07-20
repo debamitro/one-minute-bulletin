@@ -18,7 +18,6 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   // Load all images
   useEffect(() => {
     const loadImages = async () => {
-      console.log(imageUrls);
       const imagePromises = imageUrls.map((url) => {
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img = new Image();
@@ -86,18 +85,16 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
     setIsPlaying(true);
     audioRef.current.play();
 
-    // Get audio duration to calculate image transition timing
-    const audioDuration = audioRef.current.duration || 60; // fallback to 60 seconds
-    const imageInterval = (audioDuration * 1000) / imageUrls.length; // milliseconds per image
+    // Set a faster image transition interval for looping effect
+    const imageInterval = 2000; // Change image every 2 seconds for continuous looping
 
-    let startTime = Date.now();
-    let lastImageChange = startTime;
+    let lastImageChange = Date.now();
 
     const animate = () => {
       const currentTime = Date.now();
       const elapsed = currentTime - lastImageChange;
 
-      // Change image based on timing
+      // Change image based on timing - loop continuously
       if (elapsed >= imageInterval) {
         setCurrentImageIndex((prev) => (prev + 1) % imageUrls.length);
         lastImageChange = currentTime;
