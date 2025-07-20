@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import fs from 'fs';
+import path from 'path';
 
 if (!process.env.ELEVENLABS_API_KEY) {
   throw new Error('Missing ELEVENLABS_API_KEY environment variable');
@@ -21,6 +23,11 @@ export async function POST(request: Request) {
     }
 
     const refinedText = "Welcome to The One Minute Bulletin. " + text;
+    // Read the intro audio file
+    const introPath = path.join(process.cwd(), 'public', 'intro1.mp3');
+    const introBuffer = fs.readFileSync(introPath);
+
+    // Generate the main content audio
     const stream = await elevenlabs.textToSpeech.convert('LG95yZDEHg6fCZdQjLqj', 
       {
         text: refinedText,
@@ -42,14 +49,20 @@ export async function POST(request: Request) {
       chunks.push(value);
     }
     
-    // Concatenate chunks into a single Uint8Array
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const concatenated = new Uint8Array(totalLength);
+    // Concatenate main audio chunks into a single Uint8Array
+    const mainAudioLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const mainAudio = new Uint8Array(mainAudioLength);
     let offset = 0;
     for (const chunk of chunks) {
-      concatenated.set(chunk, offset);
+      mainAudio.set(chunk, offset);
       offset += chunk.length;
     }
+
+    // Concatenate intro audio + main audio
+    const totalLength = introBuffer.length + mainAudio.length;
+    const concatenated = new Uint8Array(totalLength);
+    concatenated.set(new Uint8Array(introBuffer), 0);
+    concatenated.set(mainAudio, introBuffer.length);
 
     // Convert to base64
     const base64Audio = Buffer.from(concatenated).toString('base64');
