@@ -21,7 +21,7 @@ export default function About() {
               </h2>
               <p className="text-gray-300 leading-relaxed">
                 One Minute Bulletin transforms your text into professional audio bulletins in seconds. 
-                Whether you're sharing news, updates, or announcements, we make it sound fire with AI-powered voice generation.
+                Whether you&apos;re sharing news, updates, or announcements, we make it sound fire with AI-powered voice generation.
               </p>
             </div>
 
@@ -54,7 +54,7 @@ export default function About() {
                 💫 Inspiration
               </h2>
               <p className="text-gray-300 leading-relaxed">
-                Inspired by Fireship's fast-paced, informative content style, we bring that same energy 
+                Inspired by Fireship&apos;s fast-paced, informative content style, we bring that same energy 
                 to audio bulletins. Perfect for content creators, educators, and anyone who wants to 
                 deliver information with impact.
               </p>

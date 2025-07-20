@@ -51,7 +51,7 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="text" className="block text-sm font-semibold text-white mb-3">
-                💭 What's the news you want to deliver?
+                💭 What&apos;s the news you want to deliver?
               </label>
               <textarea
                 id="text"
