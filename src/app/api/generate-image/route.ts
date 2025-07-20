@@ -20,9 +20,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate a prompt for the image based on the news text
-    const imagePrompt = `Create a professional news bulletin thumbnail image for: "${text}". Style: hyper-modern, meme-ified, sarcastic, like fireship`;
+    // First, use OpenAI to generate a creative image idea from the text
+    const ideaResponse = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a creative director for Fireship-style content. Generate a concise image prompt for DALL-E based on the given text. Make it hyper-modern, meme-ified, sarcastic. Make sure the prompt has text that is safe for work."
+        },
+        {
+          role: "user",
+          content: `Create a concise DALL-E prompt for a thumbnail image based on this text: "${text}"`
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0.8
+    });
 
+    const imagePrompt = ideaResponse.choices[0]?.message?.content || 
+      `Create a professional news bulletin thumbnail image for: "${text}". Style: hyper-modern, meme-ified, sarcastic, like fireship`;
+
+    console.log(imagePrompt);
     // Generate image using OpenAI's DALL-E
     const response = await openai.images.generate({
       model: "dall-e-3",
