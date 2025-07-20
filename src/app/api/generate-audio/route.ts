@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY environment variable');
+if (!process.env.ELEVENLABS_API_KEY) {
+  throw new Error('Missing ELEVENLABS_API_KEY environment variable');
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const elevenlabs = new ElevenLabsClient({
+  apiKey: process.env.ELEVENLABS_API_KEY
 });
 
 export async function POST(request: Request) {
@@ -20,16 +20,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate speech using OpenAI's Text-to-Speech API
-    const mp3 = await openai.audio.speech.create({
-      model: 'tts-1',
-      voice: 'alloy',
-      input: text,
-    });
+    const stream = await elevenlabs.textToSpeech.convert('LG95yZDEHg6fCZdQjLqj', 
+      {
+        text,
+        modelId: 'eleven_multilingual_v2',
+        outputFormat: 'mp3_44100_64'
+      }
+    );
 
-    // Convert the audio buffer to base64
-    const buffer = Buffer.from(await mp3.arrayBuffer());
-    const base64Audio = buffer.toString('base64');
+    // Convert ReadableStream to Uint8Array
+    const chunks = [];
+    const reader = stream.getReader();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    
+    // Concatenate chunks into a single Uint8Array
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const concatenated = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      concatenated.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    // Convert to base64
+    const base64Audio = Buffer.from(concatenated).toString('base64');
 
     // Return the audio data as base64
     return NextResponse.json({
