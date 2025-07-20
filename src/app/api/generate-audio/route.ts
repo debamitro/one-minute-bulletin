@@ -20,9 +20,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const refinedText = "Welcome to The One Minute Bulletin. " + text;
     const stream = await elevenlabs.textToSpeech.convert('LG95yZDEHg6fCZdQjLqj', 
       {
-        text,
+        text: refinedText,
         modelId: 'eleven_multilingual_v2',
         voiceSettings: {
           speed: 1.2,
