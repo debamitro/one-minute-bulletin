@@ -24,6 +24,9 @@ export async function POST(request: Request) {
       {
         text,
         modelId: 'eleven_multilingual_v2',
+        voiceSettings: {
+          speed: 1.2,
+        },
         outputFormat: 'mp3_44100_64'
       }
     );
