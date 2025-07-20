@@ -12,7 +12,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
 
   // Load all images
