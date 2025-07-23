@@ -8,7 +8,7 @@ export default function About() {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-4">
-            ✨ About One Minute Bulletin ✨
+            ✨ One Minute Bulletin ✨
           </h1>
           <p className="text-gray-300 text-lg font-medium">The story behind the magic 🔥</p>
         </div>
@@ -36,15 +36,11 @@ export default function About() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400">•</span>
-                  Our AI generates high-quality audio using ElevenLabs
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400">•</span>
-                  Get a professional bulletin with custom intro
+                  Our AI generates a fun bulletin with high-quality audio using ElevenLabs
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-teal-400">•</span>
-                  Download and share your audio anywhere
+                  Download and share your video and audio anywhere
                 </li>
               </ul>
             </div>

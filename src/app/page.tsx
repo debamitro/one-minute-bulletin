@@ -123,14 +123,22 @@ export default function Home() {
 
         {(audioUrl || imageUrls.length > 0) && (
           <div className="mt-8 space-y-6">
-            {/* Start Over Button */}
-            <div className="flex justify-center">
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4">
               <button
                 onClick={handleStartOver}
                 className="flex items-center gap-2 py-2 px-4 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
               >
                 🔄 Start Over
               </button>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Just created an amazing One Minute Bulletin! 🎥✨ Check out this AI-powered tool that turns text into professional audio bulletins with stunning visuals.')}&url=${encodeURIComponent(window.location.origin)}&hashtags=OneMinuteBulletin,AI,AudioBulletin`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 py-2 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
+              >
+                🐦 Share on X
+              </a>
             </div>
 
             {/* Canvas Video Bulletin Section */}

@@ -12,6 +12,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const animationRef = useRef<number | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   
@@ -39,14 +40,19 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
 
       try {
         imagesRef.current = await Promise.all(imagePromises);
+        setImagesLoaded(true);
         drawCurrentImage();
       } catch (error) {
         console.error('Error loading images:', error);
+        setImagesLoaded(false);
       }
     };
 
     if (imageUrls.length > 0) {
+      setImagesLoaded(false);
       loadImages();
+    } else {
+      setImagesLoaded(false);
     }
   }, [imageUrls]);
 
@@ -207,14 +213,6 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
     document.body.removeChild(a);
   };
 
-  const resetRecording = () => {
-    if (recordedVideoUrl) {
-      URL.revokeObjectURL(recordedVideoUrl);
-      setRecordedVideoUrl(null);
-    }
-    recordedChunksRef.current = [];
-  };
-
   const stopAnimation = () => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -243,6 +241,10 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      // Stop recording if it was active
+      if (isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -252,7 +254,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        🎥 Your Video Bulletin is Ready!
+        🎥 Watch your One Minute Bulletin
       </h2>
       <div className="space-y-4">
         <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
@@ -264,24 +266,34 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              {!isPlaying ? (
+              {!isPlaying && !isRecording ? (
                 <button
-                  onClick={startAnimation}
-                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-4 transition-all duration-200 transform hover:scale-110"
+                  onClick={startRecording}
+                  disabled={!imagesLoaded}
+                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 disabled:bg-white/10 disabled:cursor-not-allowed rounded-full p-4 transition-all duration-200 transform hover:scale-110 disabled:hover:scale-100"
                 >
                   <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                   </svg>
                 </button>
-              ) : (
+              ) : (isPlaying || isRecording) ? (
                 <button
-                  onClick={stopAnimation}
+                  onClick={stopRecording}
                   className="bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-4 transition-all duration-200 transform hover:scale-110"
                 >
                   <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1H8zM11 7a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1h-1z" clipRule="evenodd" />
                   </svg>
                 </button>
+              ) : null}
+              
+              {isRecording && (
+                <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
+                  <div className="inline-flex items-center gap-2 bg-red-500/80 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm font-medium">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    Recording
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -301,48 +313,28 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
 
         {/* Video Recording Controls */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-3">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            🎬 Create Video
-          </h3>
-          
-          {!recordedVideoUrl ? (
-            <div className="flex justify-center gap-3">
-              {!isRecording ? (
-                <button
-                  onClick={startRecording}
-                  disabled={imagesRef.current.length === 0}
-                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
-                >
-                  🔴 Start Recording
-                </button>
-              ) : (
-                <button
-                  onClick={stopRecording}
-                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
-                >
-                  ⏹️ Stop Recording
-                </button>
-              )}
-            </div>
-          ) : (
+          {recordedVideoUrl && !isRecording && (
             <div className="space-y-3">
               <div className="text-center text-green-400 font-medium">
-                ✅ Video recorded successfully!
+                ✅ Your download is ready!
               </div>
               <div className="flex justify-center gap-3">
                 <button
                   onClick={downloadVideo}
                   className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
                 >
-                  📥 Download Video
-                </button>
-                <button
-                  onClick={resetRecording}
-                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
-                >
-                  🔄 Record Again
+                  📥 Video
                 </button>
               </div>
+                <div className="flex justify-center">
+                  <a
+                    href={audioUrl}
+                    download="bulletin.mp3"
+                    className="flex justify-center items-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                  >
+                    📥 Audio Only
+                  </a>
+                </div>
             </div>
           )}
           
@@ -354,16 +346,6 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
               </div>
             </div>
           )}
-        </div>
-
-        <div className="flex justify-center">
-          <a
-            href={audioUrl}
-            download="bulletin.mp3"
-            className="flex justify-center items-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
-          >
-            📥 Download Audio Only
-          </a>
         </div>
       </div>
       

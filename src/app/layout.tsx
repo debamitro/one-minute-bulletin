@@ -28,6 +28,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* Footer */}
+        <footer className="pb-2 text-center bg-indigo-900">
+          <div className="max-w-lg mx-auto px-4">
+            <div className="border-t border-white/20 pt-8">
+              <p className="text-gray-400 text-sm">
+                © {new Date().getFullYear()} Built with 😁 at <a href="https://sundai.club" target="_blank" rel="noopener noreferrer">SundAI</a> by
+                &nbsp;<a href="https://x.com/debamitro" target="_blank" rel="noopener noreferrer">@debamitro</a>
+              </p>
+            </div>
+          </div>
+        </footer>
+
       </body>
     </html>
   );
