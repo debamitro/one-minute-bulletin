@@ -14,6 +14,12 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const animationRef = useRef<number | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
+  
+  // Video recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   // Load all images
   useEffect(() => {
@@ -21,7 +27,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       const imagePromises = imageUrls.map((url) => {
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img = new Image();
-          // Remove crossOrigin to avoid CORS issues
+          // No need for crossOrigin since we're using base64 data URLs
           img.onload = () => resolve(img);
           img.onerror = (error) => {
             console.error('Error loading image:', url, error);
@@ -106,10 +112,107 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       } else {
         setIsPlaying(false);
         setCurrentImageIndex(0);
+        // Stop recording if it was active
+        if (isRecording) {
+          stopRecording();
+        }
       }
     };
 
     animationRef.current = requestAnimationFrame(animate);
+  };
+
+  const startRecording = async () => {
+    if (!canvasRef.current || !audioRef.current) return;
+
+    try {
+      // Since we're using base64 images, canvas should not be tainted
+      // But we'll keep a safety check just in case
+      try {
+        canvasRef.current.toDataURL();
+      } catch (taintError) {
+        throw new Error('Canvas is tainted. This should not happen with base64 images.');
+      }
+
+      // Get canvas stream
+      const canvasStream = canvasRef.current.captureStream(30); // 30 FPS
+      
+      // Get audio stream from the audio element
+      const audioContext = new AudioContext();
+      const audioSource = audioContext.createMediaElementSource(audioRef.current);
+      const audioDestination = audioContext.createMediaStreamDestination();
+      audioSource.connect(audioDestination);
+      audioSource.connect(audioContext.destination); // Keep audio playing
+      
+      // Combine canvas and audio streams
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks()
+      ]);
+
+      // Setup MediaRecorder with fallback mime types
+      let mimeType = 'video/webm;codecs=vp9,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm';
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+        const videoUrl = URL.createObjectURL(blob);
+        setRecordedVideoUrl(videoUrl);
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      // Start the animation
+      startAnimation();
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error starting video recording: ${errorMessage}`);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    stopAnimation();
+  };
+
+  const downloadVideo = () => {
+    if (!recordedVideoUrl) return;
+    
+    const a = document.createElement('a');
+    a.href = recordedVideoUrl;
+    a.download = 'bulletin-video.webm';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const resetRecording = () => {
+    if (recordedVideoUrl) {
+      URL.revokeObjectURL(recordedVideoUrl);
+      setRecordedVideoUrl(null);
+    }
+    recordedChunksRef.current = [];
   };
 
   const stopAnimation = () => {
@@ -196,13 +299,70 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
           ))}
         </div>
 
+        {/* Video Recording Controls */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-3">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            🎬 Create Video
+          </h3>
+          
+          {!recordedVideoUrl ? (
+            <div className="flex justify-center gap-3">
+              {!isRecording ? (
+                <button
+                  onClick={startRecording}
+                  disabled={imagesRef.current.length === 0}
+                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+                >
+                  🔴 Start Recording
+                </button>
+              ) : (
+                <button
+                  onClick={stopRecording}
+                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                >
+                  ⏹️ Stop Recording
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="text-center text-green-400 font-medium">
+                ✅ Video recorded successfully!
+              </div>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={downloadVideo}
+                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                >
+                  📥 Download Video
+                </button>
+                <button
+                  onClick={resetRecording}
+                  className="flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
+                >
+                  🔄 Record Again
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {isRecording && (
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 text-red-400 font-medium">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                Recording in progress...
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-center">
           <a
             href={audioUrl}
             download="bulletin.mp3"
             className="flex justify-center items-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
           >
-            📥 Download Audio
+            📥 Download Audio Only
           </a>
         </div>
       </div>
