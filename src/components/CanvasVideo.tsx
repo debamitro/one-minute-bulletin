@@ -106,7 +106,6 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
     const imageInterval = 2000; // Change image every 2 seconds for continuous looping
 
     let lastImageChange = Date.now();
-    let lastAudioCurrentTime = audioRef.current.currentTime;
 
     const animate = () => {
       const currentTime = Date.now();
@@ -123,7 +122,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
 
     setTimeout(() => {
       stopRecording();
-    }, 25000);
+    }, 35000);
 
     animationRef.current = requestAnimationFrame(animate);
   };
@@ -167,14 +166,14 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
         'video/webm;codecs=vp8,opus',
         'video/webm'];
       
-      let mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type));
-      if (!mimeType) {
+      const supportedMimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+      if (!supportedMimeType) {
         console.error('No supported mime type found');
         return;
       }
 
-      setMimeType(mimeType);
-      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+      setMimeType(supportedMimeType);
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: supportedMimeType });
       
       mediaRecorderRef.current = mediaRecorder;
       recordedChunksRef.current = [];
@@ -186,7 +185,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+        const blob = new Blob(recordedChunksRef.current, { type: supportedMimeType });
         const videoUrl = URL.createObjectURL(blob);
         setRecordedVideoUrl(videoUrl);
         setIsRecording(false);
