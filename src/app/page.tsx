@@ -90,15 +90,25 @@ export default function Home() {
                 <label htmlFor="text" className="block text-sm font-semibold text-white mb-3">
                   💭 What&apos;s the news you want to deliver?
                 </label>
-                <textarea
-                  id="text"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all duration-200"
-                  placeholder="Paste the news here and click Generate"
-                  required
-                />
+                <div className="relative">
+                  <textarea
+                    id="text"
+                    value={text}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 300) {
+                        setText(e.target.value);
+                      }
+                    }}
+                    rows={4}
+                    maxLength={300}
+                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all duration-200"
+                    placeholder="Paste the news here and click Generate (max 300 characters)"
+                    required
+                  />
+                  <div className="absolute bottom-2 right-3 text-xs text-white/70">
+                    {text.length}/300
+                  </div>
+                </div>
               </div>
               
               <button
@@ -146,61 +156,6 @@ export default function Home() {
               <CanvasVideo imageUrls={imageUrls} audioUrl={audioUrl} />
             )}
 
-            {/* Fallback: Show individual sections if only one is available */}
-            {imageUrls.length > 0 && !audioUrl && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  🖼️ Your Images are Ready!
-                </h2>
-                <div className="space-y-4">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 grid grid-cols-2 gap-2">
-                    {imageUrls.map((url, index) => (
-                      <img 
-                        key={index}
-                        src={url} 
-                        alt={`Generated bulletin thumbnail ${index + 1}`} 
-                        className="w-full h-auto rounded-lg shadow-lg"
-                      />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {imageUrls.slice(0, 2).map((url, index) => (
-                      <a
-                        key={index}
-                        href={url}
-                        download={`bulletin-thumbnail-${index + 1}.png`}
-                        className="flex justify-center items-center gap-2 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-xl shadow-lg text-white font-semibold transition-all duration-200 transform hover:scale-105"
-                      >
-                        🖼️ Image {index + 1}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {audioUrl && imageUrls.length === 0 && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  🎧 Your Audio is Ready!
-                </h2>
-                <div className="space-y-4">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                    <audio controls className="w-full">
-                      <source src={audioUrl} type="audio/mpeg" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  </div>
-                  <a
-                    href={audioUrl}
-                    download="bulletin.mp3"
-                    className="w-full flex justify-center items-center gap-2 py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-xl shadow-lg text-white font-semibold text-lg transition-all duration-200 transform hover:scale-105"
-                  >
-                    📥 Download Audio
-                  </a>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

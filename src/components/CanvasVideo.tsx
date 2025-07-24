@@ -21,6 +21,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const [mimeType, setMimeType] = useState<string | null>(null);
 
   // Load all images
   useEffect(() => {
@@ -95,12 +96,17 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
     if (!audioRef.current || imagesRef.current.length === 0) return;
 
     setIsPlaying(true);
+    if (audioRef.current.paused || audioRef.current.ended) {
+      audioRef.current.currentTime = 0;
+    }
+
     audioRef.current.play();
 
     // Set a faster image transition interval for looping effect
     const imageInterval = 2000; // Change image every 2 seconds for continuous looping
 
     let lastImageChange = Date.now();
+    let lastAudioCurrentTime = audioRef.current.currentTime;
 
     const animate = () => {
       const currentTime = Date.now();
@@ -112,24 +118,23 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
         lastImageChange = currentTime;
       }
 
-      // Continue animation while audio is playing
-      if (audioRef.current && !audioRef.current.paused && !audioRef.current.ended) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        setIsPlaying(false);
-        setCurrentImageIndex(0);
-        // Stop recording if it was active
-        if (isRecording) {
-          stopRecording();
-        }
-      }
+      animationRef.current = requestAnimationFrame(animate);
     };
+
+    setTimeout(() => {
+      stopRecording();
+    }, 25000);
 
     animationRef.current = requestAnimationFrame(animate);
   };
 
   const startRecording = async () => {
     if (!canvasRef.current || !audioRef.current) return;
+
+    if (recordedVideoUrl) {
+      startAnimation();
+      return;
+    }
 
     try {
       // Since we're using base64 images, canvas should not be tainted
@@ -157,14 +162,18 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       ]);
 
       // Setup MediaRecorder with fallback mime types
-      let mimeType = 'video/webm;codecs=vp9,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm;codecs=vp8,opus';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'video/webm';
-        }
+      const preferredMimeTypes = ['video/mp4;codecs=avc1.64003E,mp4a.40.2', 
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'];
+      
+      let mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+      if (!mimeType) {
+        console.error('No supported mime type found');
+        return;
       }
 
+      setMimeType(mimeType);
       const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
       
       mediaRecorderRef.current = mediaRecorder;
@@ -203,11 +212,11 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
   };
 
   const downloadVideo = () => {
-    if (!recordedVideoUrl) return;
+    if (!recordedVideoUrl || !mimeType) return;
     
     const a = document.createElement('a');
     a.href = recordedVideoUrl;
-    a.download = 'bulletin-video.webm';
+    a.download = 'bulletin-video.' + mimeType.split(';')[0].split('/')[1];
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -230,31 +239,10 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
     drawCurrentImage();
   }, [currentImageIndex, drawCurrentImage]);
 
-  // Handle audio end
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentImageIndex(0);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      // Stop recording if it was active
-      if (isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
-    };
-
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
-  }, []);
-
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-white/20">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        🎥 Watch your One Minute Bulletin
+        🎥 Watch
       </h2>
       <div className="space-y-4">
         <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
@@ -291,7 +279,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
                 <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
                   <div className="inline-flex items-center gap-2 bg-red-500/80 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm font-medium">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    Recording
+                    Preparing download
                   </div>
                 </div>
               )}
@@ -299,18 +287,6 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
           </div>
         </div>
         
-        {/* Progress indicator */}
-        <div className="flex justify-center space-x-2">
-          {imageUrls.map((_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                index === currentImageIndex ? 'bg-pink-400' : 'bg-white/30'
-              }`}
-            />
-          ))}
-        </div>
-
         {/* Video Recording Controls */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-3">
           {recordedVideoUrl && !isRecording && (
@@ -338,14 +314,21 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
             </div>
           )}
           
-          {isRecording && (
+          {isRecording ? (
             <div className="text-center">
               <div className="inline-flex items-center gap-2 text-red-400 font-medium">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                Recording in progress...
+                Preparing download ...
               </div>
             </div>
-          )}
+          ) : !recordedVideoUrl ? (
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 text-red-400 font-medium">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                Press play
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
       
