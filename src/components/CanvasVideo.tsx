@@ -100,6 +100,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       audioRef.current.currentTime = 0;
     }
 
+    audioRef.current.load();
     audioRef.current.play();
 
     // Set a faster image transition interval for looping effect
@@ -122,7 +123,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
 
     setTimeout(() => {
       stopRecording();
-    }, 35000);
+    }, 30000);
 
     animationRef.current = requestAnimationFrame(animate);
   };
@@ -161,7 +162,9 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       ]);
 
       // Setup MediaRecorder with fallback mime types
-      const preferredMimeTypes = ['video/mp4;codecs=avc1.64003E,mp4a.40.2', 
+      const preferredMimeTypes = [
+        'video/mp4;codecs=avc1.64003E,mp4a.40.34',
+        'video/mp4;codecs=avc1.64003E,mp4a.40.2', 
         'video/webm;codecs=vp9,opus',
         'video/webm;codecs=vp8,opus',
         'video/webm'];
@@ -185,13 +188,15 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
       };
 
       mediaRecorder.onstop = () => {
+        setTimeout(() => {
         const blob = new Blob(recordedChunksRef.current, { type: supportedMimeType });
         const videoUrl = URL.createObjectURL(blob);
         setRecordedVideoUrl(videoUrl);
         setIsRecording(false);
+        }, 2000);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(2000);
       setIsRecording(true);
       
       // Start the animation
@@ -331,7 +336,7 @@ export default function CanvasVideo({ imageUrls, audioUrl }: CanvasVideoProps) {
         </div>
       </div>
       
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio ref={audioRef} src={audioUrl} />
     </div>
   );
 }
